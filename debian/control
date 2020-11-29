@@ -1,0 +1,38 @@
+Source: playground-debian-crossbuild
+Maintainer: Eugenio Paolantonio (g7) <me@medesimo.eu>
+Section: misc
+Priority: optional
+Build-Depends: debhelper (>= 10)
+Vcs-Browser: https://github.com/hybris-mobian-releng/playground-debian-crossbuild
+Vcs-Git: https://github.com/hybris-mobian-releng/playground-debian-crossbuild.git
+
+Package: playground-debian-crossbuild-any
+Architecture: any
+Description: playground-debian-crossbuild (any)
+ This package should be routed on an amd64 builder,
+ but should be available to every architecture.
+
+Package: playground-debian-crossbuild-all
+Architecture: all
+Description: playground-debian-crossbuild (all)
+ This package should be routed on every builder for
+ the supported architectures and one package per
+ architecture should be available.
+
+Package: playground-debian-crossbuild-amd64
+Architecture: amd64
+Description: playground-debian-crossbuild (amd64)
+ This package should be routed on an amd64 builder,
+ and should be available only on amd64.
+
+Package: playground-debian-crossbuild-arm64
+Architecture: arm64
+Description: playground-debian-crossbuild (arm64)
+ This package should be routed on an arm64 builder,
+ and should be available only on arm64.
+
+Package: playground-debian-crossbuild-armhf
+Architecture: armhf
+Description: playground-debian-crossbuild (armhf)
+ This package should be routed on an armhf builder,
+ and should be available only on armhf.
