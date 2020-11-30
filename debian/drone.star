@@ -15,19 +15,20 @@ BUILD_ON = [
 # Note that builds with EXTRA_REPOS won't start on production or staging.
 EXTRA_REPOS = []
 
-# Target architecture. This can be used to instruct the buildd to
-# assume the packages are built for the specified architecture. This
-# is useful for cross-builds. You will probably want to leave this
-# value as None (the default) unless you know what you're doing.
+# Host architecture. This can be used to instruct the buildd to
+# assume the packages are built (host -> should be executed on) for the
+# specified architecture. This is useful for cross-builds.
+# You will probably want to leave this value as None (the default) unless
+# you know what you're doing.
 #
-# Note that when TARGET_ARCH is not None, builds will be created only
+# Note that when HOST_ARCH is not None, builds will be created only
 # for the first architecture specified in BUILD_ON.
 #
 # For example, taking in account the following:
 #     BUILD_ON = ["amd64"]
-#     TARGET_ARCH = "arm64"
+#     HOST_ARCH = "arm64"
 # The buildd infrastructure will build on amd64 targetting arm64.
-TARGET_ARCH = "arm64"
+HOST_ARCH = "arm64"
 
 ########################################################################
 # SNIPPET GOES HERE                                                    #
@@ -110,7 +111,7 @@ def build_environment_from_secrets(var_list):
 		for x in var_list
 	}
 
-def debian_package_build(suite, architecture, full_build=True, extra_repos=[], target_arch=None):
+def debian_package_build(suite, architecture, full_build=True, extra_repos=[], host_arch=None):
 	"""
 	Returns a build pipeline for a Debian package build.
 
@@ -120,7 +121,7 @@ def debian_package_build(suite, architecture, full_build=True, extra_repos=[], t
 	only an arch-dep build.
 	:param: extra_repos: a list containing the extra_repos to add (defaults
 	to [])
-	:param: target_arch: the target arch to use (defaults to None)
+	:param: host_arch: the host arch to use (defaults to None)
 	"""
 
 	result = {
@@ -136,7 +137,7 @@ def debian_package_build(suite, architecture, full_build=True, extra_repos=[], t
 		"steps" : [
 			{
 				"name" : "build",
-				"image" : "%s:%s-%s" % (DOCKER_IMAGE, suite, architecture),
+				"image" : "quay.io/%s:%s-%s" % (DOCKER_IMAGE, suite, architecture),
 				"volumes" : [
 					{
 						"name" : "buildd-results",
@@ -144,21 +145,18 @@ def debian_package_build(suite, architecture, full_build=True, extra_repos=[], t
 					},
 				],
 				"commands" : [
-					"apt-get update",
-					"apt-get --yes dist-upgrade",
-					"sed -i -e 's,--target-arch ,-a,g' /usr/bin/releng-build-package",
 					"releng-build-package",
 					"find /drone -type f -maxdepth 1 -exec mv {} /buildd \\\;",
 				],
 				"environment" : {
 					"RELENG_FULL_BUILD" : "yes" if full_build else "no",
 					"EXTRA_REPOS" : "|".join(extra_repos),
-					"RELENG_TARGET_ARCH" : target_arch or architecture,
+					"RELENG_HOST_ARCH" : host_arch or architecture,
 				}
 			},
 			{
 				"name" : "deploy",
-				"image" : "%s:%s-%s" % (DOCKER_IMAGE, suite, architecture),
+				"image" : "quay.io/%s:%s-%s" % (DOCKER_IMAGE, suite, architecture),
 				"volumes" : [
 					{
 						"name" : "buildd-results",
@@ -187,7 +185,7 @@ def debian_package_build(suite, architecture, full_build=True, extra_repos=[], t
 
 	return result
 
-def get_debian_package_pipelines(context, build_on=["amd64"], extra_repos=[], target_arch=None):
+def get_debian_package_pipelines(context, build_on=["amd64"], extra_repos=[], host_arch=None):
 	"""
 	Returns a list of suitable pipelines for the current build.
 
@@ -196,7 +194,7 @@ def get_debian_package_pipelines(context, build_on=["amd64"], extra_repos=[], ta
 	(defaults to ["amd64"],
 	:param: extra_repos: a list containing the extra_repos to add (defaults
 	to [])
-	:param: target_arch: the target arch to use (defaults to None)
+	:param: host_arch: the host arch to use (defaults to None)
 	"""
 
 	# Determine suite
@@ -224,9 +222,9 @@ def get_debian_package_pipelines(context, build_on=["amd64"], extra_repos=[], ta
 
 	first_arch = build_on[0]
 
-	if target_arch != None:
+	if host_arch != None:
 		# Force only one buildd
-		if target_arch in SUPPORTED_ARCHITECTURES:
+		if host_arch in SUPPORTED_ARCHITECTURES:
 			build_on = [first_arch]
 		else:
 			# Bail out
@@ -238,7 +236,7 @@ def get_debian_package_pipelines(context, build_on=["amd64"], extra_repos=[], ta
 			architecture,
 			full_build=(architecture == first_arch),
 			extra_repos=extra_repos,
-			target_arch=target_arch
+			host_arch=host_arch
 		)
 		for architecture in build_on
 		if architecture in SUPPORTED_ARCHITECTURES
@@ -250,6 +248,6 @@ def main(context):
 		context,
 		build_on=BUILD_ON,
 		extra_repos=EXTRA_REPOS,
-		target_arch=TARGET_ARCH,
+		host_arch=HOST_ARCH,
 	)
 
